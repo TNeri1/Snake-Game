@@ -78,6 +78,31 @@ const getSegmentsFromVectors = vectors => getWithoutLastElement(vectors)
 // #endregion
 
 // #region constants
+const STOP_KEY = 32
+
+const MOVEMENT_KEYS = {
+    TOP: [87, 38],
+    LEFT: [65, 37],
+    RIGHT: [68, 39],
+    DOWN: [83, 40]
+}
+
+const DEFAULT_GAME_CONFIG = {
+    width: 17,
+    height: 15,
+    speed: 0.006,
+    initialSnakeLength: 3,
+    initialDirection: DIRECTION.RIGHT
+}
+
+const MOVEMENT = {
+    TOP: 'TOP',
+    RIGHT: 'RIGHT',
+    DOWN: 'DOWN',
+    LEFT: 'LEFT'
+}
+
+const UPDATE_EVERY = 1000 / 60
 // #endregion
 
 // #region gamecore
