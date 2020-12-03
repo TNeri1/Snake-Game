@@ -1,3 +1,4 @@
+const { getMainRangeChannel } = require("vega-lite/build/src/channel")
 const { add } = require("vega-lite/build/src/compositemark")
 
 // #region general utils
@@ -277,6 +278,95 @@ const getNewGameState = (state, movement, timespan) => {
 // #endregion
 
 // #region rendering
+const getProjectors = (containerSize, gameSize) => {
+    const widthRatio = containerSize.width / gameSize.width
+    const heightRatio = containerSize.height / gameSize.height
+    const unitOnScreen = Math.min(widthRatio, heightRatio)
+
+    return {
+        projectDistance: distance => distance * unitOnScreen,
+        projectPosition: position => position.scaleBy(unitOnScreen)
+    }
+}
+
+const getContainer = () => document.getElementById('container')
+
+const getContainerSize = () => {
+    const { width, height } = getContainer().getBoundingClientRect()
+    return { width, height }
+}
+
+const clearContainer = () => {
+    const container = getContainer()
+    const [child] = container.children
+    if (child) {
+        container.removeChild(child)
+    }
+}
+
+const getContext = (width, height) => {
+    const [existing] = document.getElementsByTagName('canvas')
+    const canvas = existing || document.createElement('canvas')
+    if (!existing) {
+        getContainer().appendChild(canvas)
+    }
+    const context = canvas.getContext('2d')
+    context.clearRect(0, 0, canvas.width, canvas.height)
+    canvas.setAttribute('width', width)
+    canvas.setAttribute('height', height)
+    return context
+}
+
+const renderCells = (context, sellSide, width, height) => {
+    context.globalAlpha = 0.2
+    getRange(width).forEach(column => getMainRangeChannel(height).forEach(row => {
+        if ((column + row) % 2 == 1) {
+            context.fillRect(column * sellSide, row * sellSide, sellSide, sellSide)
+        }
+    }))
+    context.globalAlpha = 1
+}
+
+const renderFood = (context, sellSide, { x, y }) => {
+    context.beginPath()
+    context.arc(x, y, sellSide / 2.5, 0, 2 * Math.PI)
+    context.fillStyle = '#e74c3c'
+    context.fill()
+}
+
+const renderSnake = (context, sellSide, snake) => {
+    context.lineWidth = sellSide
+    context.strokeStyle = '#3498db'
+    context.beginPath()
+    snake.forEach(({ x, y }) => context.lineTo(x, y))
+    context.stroke()
+}
+
+const renderScores = (score, bestScore) => {
+    document.getElementById('current-score').innerText = score
+    document.getElementById('best-score')
+}
+
+const render = ({
+    game: {
+        width,
+        height,
+        food,
+        snake,
+        score
+    },
+    bestScore,
+    projectDistance,
+    projectPosition
+}) => {
+    const [viewWidth, wiewHeight] = [width, height].map(projectDistance)
+    const context = getContext(viewWidth, viewHeight)
+    const cellSide = viewWidth / width
+    renderCells(context, cellSide, width, height)
+    renderFood(context, cellSide, projectPosition(food))
+    renderSnake(context, cellside, snake.map(projectPosition))
+    renderScores(score, bestScore)
+}
 // #endregion
 
 // #region main
