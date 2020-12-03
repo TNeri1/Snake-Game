@@ -1,5 +1,6 @@
 const { getMainRangeChannel } = require("vega-lite/build/src/channel")
 const { add } = require("vega-lite/build/src/compositemark")
+const { TICK } = require("vega-lite/build/src/mark")
 
 // #region general utils
 const getRange = length => [...Array(length).keys()]
@@ -370,4 +371,71 @@ const render = ({
 // #endregion
 
 // #region main
+const getInitialState = () => {
+    const containerSize = getContainerSize()
+    const game = getGameInitialState()
+    return {
+        ...containerSize,
+        game,
+        ...getProjectors(containerSize, game),
+        bestScore: parseInt(localStorage.bestScore) || 0
+    }
+}
+
+const getNewStatePropsOnTick = oldState => {
+    if (oldState.stopTime) return {}
+
+    const lastUpdate = Date.now()
+    if (oldState.lastUpdate) {
+        const game = getNewGameState(oldState.game, oldState.movement, lastUpdate - oldState.lastUpdate)
+        const newProps = {
+            game,
+            lastUpdate
+        }
+        if (game.score > oldState.bestScore) {
+            localStorage.setItem('bestScore', game.score)
+            return {
+                ...newProps,
+                bestScore: game.score
+            }
+        }
+        return newProps
+    }
+
+    return {
+        lastUpdate
+    }
+}
+
+// PUTTING EVERYTHING TOGETHER
+const startGame = () => {
+    let state = getInitialState()
+    const updateState = props => {
+        state = { ...state, ...props}
+    }
+
+    window.addEventListener('resize', () => {
+        clearContainer()
+        const containerSize = getContainerSize()
+        updateState({ ...containerSize, ...getProjectors(containerSize, state.game) })
+        TICK()
+    })
+    window.addEventListener('keydown', ({ which }) => {
+        const [movement] = Object.defineProperties(MOVEMENT_KEYS).find(([_, keys]) => keys.includes(which)) || [undefined]
+        updateState({ movement })
+    })
+    window.addEventListener('keyup', ({ which }) => {
+        updateState({ movement: undefined })
+        if (which === STOP_KEY) {
+            const now = Date.now()
+            if (state.stopTime) {
+                updateState({ stopTime: undefined, lastUpdate: state.time + now - state.lastUpdate })
+            } else {
+                updateState({ stopTime: now })
+            }
+        }
+    })
+}
 // #endregion
+
+startGame()
