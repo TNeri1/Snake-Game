@@ -1,7 +1,3 @@
-const { getMainRangeChannel } = require("vega-lite/build/src/channel")
-const { add } = require("vega-lite/build/src/compositemark")
-const { TICK } = require("vega-lite/build/src/mark")
-
 // #region general utils
 const getRange = length => [...Array(length).keys()]
 const getRandomFrom = array => array[Math.floor(Math.random() * array.length)]
@@ -21,11 +17,11 @@ class Vector {
         return new Vector(this.x * number, this.y * number)
     }
 
-    add({x, y}) {
+    add({ x, y }) {
         return new Vector(this.x + x, this.y + y)
     }
 
-    subtract({x, y}) {
+    subtract({ x, y }) {
         return new Vector(this.x - x, this.y - y)
     }
 
@@ -34,11 +30,11 @@ class Vector {
     }
 
     normalize() {
-        return this.scaleBy(1 / this.length)
+        return this.scaleBy(1 / this.length())
     }
 
     isOpposite(vector) {
-        const {x, y} = this.add(vector)
+        const { x, y } = this.add(vector)
         return areEqual(x, 0) && areEqual(y, 0)
     }
 
@@ -63,14 +59,15 @@ class Segment {
 
     isPointInside(point) {
         const first = new Segment(this.start, point)
-        const second = new Segment(point, this. end)
-        return areEqual(this.length(), first.length() = second.length())
+        const second = new Segment(point, this.end)
+        return areEqual(this.length(), first.length() + second.length())
     }
 
-    getProjectedPoint({x, y}) {
-        const {start, end} = this
-        const {x: px, y: py} = end.subtract(start)
+    getProjectedPoint({ x, y }) {
+        const { start, end } = this
+        const { x: px, y: py } = end.subtract(start)
         const u = ((x - start.x) * px + (y - start.y) * py) / (px * px + py * py)
+        return new Vector(start.x + u * px, start.y + u * py)
     }
 }
 
@@ -87,6 +84,13 @@ const MOVEMENT_KEYS = {
     LEFT: [65, 37],
     RIGHT: [68, 39],
     DOWN: [83, 40]
+}
+
+const DIRECTION = {
+    TOP: new Vector(0, -1),
+    RIGHT: new Vector(1, 0),
+    DOWN: new Vector(0, 1),
+    LEFT: new Vector(-1, 0)
 }
 
 const DEFAULT_GAME_CONFIG = {
@@ -185,7 +189,7 @@ const getNewTail = (oldSnake, distance) => {
 const getStateAfterMoveProcessing = (state, movement, distance) => {
     const newTail = getNewTail(state.snake, distance)
     const oldHead = getLastElement(state.snake)
-    const newHead = oldhead.add(statte.direction.scaleBy(distance))
+    const newHead = oldHead.add(state.direction.scaleBy(distance))
     const newDirection = getNewDirection(state.direction, movement)
     if (!state.direction.equalTo(newDirection)) {
         const { x: oldX, y: oldY } = oldHead
@@ -266,16 +270,6 @@ const getNewGameState = (state, movement, timespan) => {
     }
     return stateAfterFood
 }
-
-const getNewGameState = (state, movement, timespan) => {
-    const distance = state.speed * timespan
-    const stateAfterMove = getStateAfterMoveProcessing(state, movement, distance)
-    const stateAfterFood = getStateAfterFoodProcessing(stateAfterMove)
-    if (isGameOver(stateAfterFood)) {
-        return getGameInitialState(state)
-    }
-    return stateAfterFood
-}
 // #endregion
 
 // #region rendering
@@ -293,7 +287,7 @@ const getProjectors = (containerSize, gameSize) => {
 const getContainer = () => document.getElementById('container')
 
 const getContainerSize = () => {
-    const { width, height } = getContainer().getBoundingClientRect()
+    const { width, height } = document.getElementById('container').getBoundingClientRect()
     return { width, height }
 }
 
@@ -320,7 +314,7 @@ const getContext = (width, height) => {
 
 const renderCells = (context, sellSide, width, height) => {
     context.globalAlpha = 0.2
-    getRange(width).forEach(column => getMainRangeChannel(height).forEach(row => {
+    getRange(width).forEach(column => getRange(height).forEach(row => {
         if ((column + row) % 2 == 1) {
             context.fillRect(column * sellSide, row * sellSide, sellSide, sellSide)
         }
@@ -345,7 +339,7 @@ const renderSnake = (context, sellSide, snake) => {
 
 const renderScores = (score, bestScore) => {
     document.getElementById('current-score').innerText = score
-    document.getElementById('best-score')
+    document.getElementById('best-score').innerText = bestScore
 }
 
 const render = ({
@@ -360,12 +354,12 @@ const render = ({
     projectDistance,
     projectPosition
 }) => {
-    const [viewWidth, wiewHeight] = [width, height].map(projectDistance)
+    const [viewWidth, viewHeight] = [width, height].map(projectDistance)
     const context = getContext(viewWidth, viewHeight)
     const cellSide = viewWidth / width
     renderCells(context, cellSide, width, height)
     renderFood(context, cellSide, projectPosition(food))
-    renderSnake(context, cellside, snake.map(projectPosition))
+    renderSnake(context, cellSide, snake.map(projectPosition))
     renderScores(score, bestScore)
 }
 // #endregion
@@ -418,10 +412,10 @@ const startGame = () => {
         clearContainer()
         const containerSize = getContainerSize()
         updateState({ ...containerSize, ...getProjectors(containerSize, state.game) })
-        TICK()
+        tick()
     })
     window.addEventListener('keydown', ({ which }) => {
-        const [movement] = Object.defineProperties(MOVEMENT_KEYS).find(([_, keys]) => keys.includes(which)) || [undefined]
+        const [movement] = Object.entries(MOVEMENT_KEYS).find(([_, keys]) => keys.includes(which)) || [undefined]
         updateState({ movement })
     })
     window.addEventListener('keyup', ({ which }) => {
@@ -435,6 +429,12 @@ const startGame = () => {
             }
         }
     })
+
+    const tick = () => {
+        updateState(getNewStatePropsOnTick(state))
+        render(state)
+    }
+    setInterval(tick, UPDATE_EVERY)
 }
 // #endregion
 
