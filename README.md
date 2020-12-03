@@ -14,4 +14,4 @@
 
 ### Resources
 
-![Snake Game Tutorial]('https://geekrodion.medium.com/snake-game-with-javascript-part-1-77950393c153')
+[Snake Game Tutorial](https://geekrodion.medium.com/snake-game-with-javascript-part-1-77950393c153)
