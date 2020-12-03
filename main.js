@@ -255,15 +255,25 @@ const isGameOver = ({ snake, width, height }) => {
     })
   }
 
-  const getNewGameState = (state, movement, timespan) => {
-      const distance = state.speed * timespan
-      const stateAfterMove = getStateAfterMoveProcessing(state, movement, distance)
-      const stateAfterFood = getStateAfterFoodProcessing(stateAfterMove)
-      if (isGameOver(stateAfterFood)) {
-          return getGameInitialState(state)
-      }
-      return stateAfterFood
-  }
+const getNewGameState = (state, movement, timespan) => {
+    const distance = state.speed * timespan
+    const stateAfterMove = getStateAfterMoveProcessing(state, movement, distance)
+    const stateAfterFood = getStateAfterFoodProcessing(stateAfterMove)
+    if (isGameOver(stateAfterFood)) {
+        return getGameInitialState(state)
+    }
+    return stateAfterFood
+}
+
+const getNewGameState = (state, movement, timespan) => {
+    const distance = state.speed * timespan
+    const stateAfterMove = getStateAfterMoveProcessing(state, movement, distance)
+    const stateAfterFood = getStateAfterFoodProcessing(stateAfterMove)
+    if (isGameOver(stateAfterFood)) {
+        return getGameInitialState(state)
+    }
+    return stateAfterFood
+}
 // #endregion
 
 // #region rendering
